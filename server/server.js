@@ -7,6 +7,8 @@ import Koa from "koa";
 import Router from "koa-router";
 var url = require("url");
 
+import { handle_proxy_apis } from "./APIs";
+
 dotenv.config();
 const port = parseInt(process.env.PORT, 10) || 8081;
 
@@ -23,7 +25,12 @@ Shopify.Context.initialize({
 
 // Storing the currently active shops in memory will force them to re-login when your server restarts. You should
 // persist this object in your app.
-const ACTIVE_SHOPIFY_SHOPS = {};
+const ACTIVE_SHOPIFY_SHOPS = {
+  "test-print-a-wave.myshopify.com": {
+    offlineToken: "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",
+    scope: "write_products,write_customers,write_draft_orders",
+  },
+};
 
 const app = new Koa();
 const router = new Router();
@@ -32,9 +39,14 @@ app.keys = [Shopify.Context.API_SECRET_KEY];
 // Sets up shopify auth
 app.use(
   shopifyAuth({
+    accessMode: "offline",
     async afterAuth(ctx) {
-      const { shop, accessToken } = ctx.state.shopify;
-      ACTIVE_SHOPIFY_SHOPS[shop] = true;
+      const { shop, accessToken, scope } = ctx.state.shopify;
+
+      console.log(shop, accessToken, scope, "shop, accessToken, scope");
+
+      const host = ctx.query.host;
+      // ACTIVE_SHOPIFY_SHOPS[shop] = scope;
 
       // Your app should handle the APP_UNINSTALLED webhook to make sure merchants go through OAuth if they reinstall it
       const response = await Shopify.Webhooks.Registry.register({
@@ -53,25 +65,22 @@ app.use(
       }
 
       // Redirect to app with shop parameter upon auth
-      ctx.redirect(`/?shop=${shop}`);
+      ctx.redirect(`/?shop=${shop}&host=${host}`);
     },
   })
 );
 
 router.get("/", async (ctx) => {
-  console.log(ctx, "index router");
-  // const shop = ctx.query.shop;
+  const shop = ctx.query.shop;
 
-  // // If this shop hasn't been seen yet, go through OAuth to create a session
-  // if (ACTIVE_SHOPIFY_SHOPS[shop] === undefined) {
-  //   ctx.redirect(`/auth?shop=${shop}`);
-  // } else {
-  //   // Load app skeleton. Don't include sensitive information here!
-  //   ctx.body = '🎉';
-  // }
-
-  ctx.body =
-    "This is the Index page of the application and here we have to check session first";
+  // If this shop hasn't been seen yet, go through OAuth to create a session
+  if (ACTIVE_SHOPIFY_SHOPS[shop] === undefined) {
+    ctx.redirect(`/auth?shop=${shop}`);
+  } else {
+    // Load app skeleton. Don't include sensitive information here!
+    ctx.body =
+      "This is the Index page of the application and here we have to check session first";
+  }
 });
 
 router.post("/webhooks", async (ctx) => {
@@ -90,25 +99,17 @@ router.post("/webhooks", async (ctx) => {
 //   console.log(session, "=========== session ============")
 // });
 
-// Everything else must have sessions
-router.get("/proxy", async (ctx) => {
+/**
+ * Middleware for checking shop name and signature before any api calls
+ * */
+const check_shopname_and_signature = (ctx, next) => {
   ctx.set("Content-Type", "application/json");
-
-  // If shop parameter is present then get shop url & access token from DB
   if (ctx && ctx.req.url && ctx.req.url.indexOf("shop=") !== -1) {
     var queryData = url.parse(ctx.req.url, true).query;
-
-    console.log(
-      "Proxy payload from shopify store ===>> ",
-      JSON.stringify(queryData)
-    );
-
     if (queryData && queryData.shop) {
       if (queryData.signature) {
-        ctx.body = {
-          status: true,
-          data: queryData,
-        };
+        ctx.queryData = queryData;
+        next();
       } else {
         ctx.body = {
           status: false,
@@ -127,7 +128,12 @@ router.get("/proxy", async (ctx) => {
       message: "Either url or shop query string is missing from URL",
     };
   }
-});
+};
+
+/**
+ * Handling API requests from stores in which my app is installed
+ * */
+router.get("/proxy", check_shopname_and_signature, handle_proxy_apis);
 
 app.use(router.allowedMethods());
 app.use(router.routes());

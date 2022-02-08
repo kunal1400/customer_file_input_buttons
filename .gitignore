@@ -20,5 +20,5 @@ config/tunnel.pid
 # next build output
 .next/
 
-yarn.lock
 package-lock.json
+yarn.lock

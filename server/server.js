@@ -5,9 +5,12 @@ import shopifyAuth, { verifyRequest } from "@shopify/koa-shopify-auth";
 import Shopify, { ApiVersion } from "@shopify/shopify-api";
 import Koa from "koa";
 import Router from "koa-router";
+import bodyParser from "koa-bodyparser";
 var url = require("url");
 
+// Custom routes
 import { handle_proxy_apis } from "./APIs";
+import { handle_post_requests } from "./APIs/handlePostRequests";
 
 dotenv.config();
 const port = parseInt(process.env.PORT, 10) || 8081;
@@ -33,6 +36,8 @@ const ACTIVE_SHOPIFY_SHOPS = {
 };
 
 const app = new Koa();
+// To handle post requests we need bodyParser
+app.use(bodyParser());
 const router = new Router();
 app.keys = [Shopify.Context.API_SECRET_KEY];
 
@@ -109,7 +114,7 @@ const check_shopname_and_signature = (ctx, next) => {
     if (queryData && queryData.shop) {
       if (queryData.signature) {
         ctx.queryData = queryData;
-        next();
+        return next();
       } else {
         ctx.body = {
           status: false,
@@ -131,9 +136,14 @@ const check_shopname_and_signature = (ctx, next) => {
 };
 
 /**
- * Handling API requests from stores in which my app is installed
+ * Handling GET API requests from stores in which my app is installed
  * */
 router.get("/proxy", check_shopname_and_signature, handle_proxy_apis);
+
+/**
+ * Handling POST API requests from stores in which my app is installed
+ * */
+router.post("/proxy", check_shopname_and_signature, handle_post_requests);
 
 app.use(router.allowedMethods());
 app.use(router.routes());

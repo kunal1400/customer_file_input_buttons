@@ -1,5 +1,4 @@
-import { GraphQLClient } from "graphql-request";
-import { setContext } from "@apollo/client/link/context";
+import { ApolloClient, InMemoryCache } from "@apollo/client";
 
 /**
  *
@@ -28,10 +27,12 @@ export const oldcreateClient = (shop, accessToken) => {
   });
 };
 
-export const createClientOld = (shop, accessToken) => {
+export const createClient = (shop, accessToken) => {
   const client = new ApolloClient({
     uri: `https://${shop}/admin/api/2022-01/graphql.json`,
-    cache: new InMemoryCache(),
+    cache: new InMemoryCache({
+      addTypename: false,
+    }),
     headers: {
       "X-Shopify-Access-Token": accessToken,
     },
@@ -39,7 +40,7 @@ export const createClientOld = (shop, accessToken) => {
   return client;
 };
 
-export const createClient = (shop, accessToken) => {
+export const createClientOld = (shop, accessToken) => {
   const graphQLClient = new GraphQLClient(
     `https://${shop}/admin/api/2022-01/graphql.json`,
     {

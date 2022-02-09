@@ -11,6 +11,7 @@ var url = require("url");
 // Custom routes
 import { handle_proxy_apis } from "./APIs";
 import { handle_post_requests } from "./APIs/handlePostRequests";
+import { check_app_block_support } from "./APIs/checkAppBlockSupport";
 
 dotenv.config();
 const port = parseInt(process.env.PORT, 10) || 8081;
@@ -83,6 +84,7 @@ router.get("/", async (ctx) => {
     ctx.redirect(`/auth?shop=${shop}`);
   } else {
     // Load app skeleton. Don't include sensitive information here!
+    check_app_block_support();
     ctx.body =
       "This is the Index page of the application and here we have to check session first";
   }

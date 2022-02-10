@@ -1,5 +1,4 @@
 import { gql } from "@apollo/client";
-import { createClient } from "../../handlers/client";
 
 export const STAGED_UPLOADS_CREATE = gql`
   mutation stagedUploadsCreate($input: [StagedUploadInput!]!) {

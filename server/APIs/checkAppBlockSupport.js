@@ -97,10 +97,14 @@ export const check_app_block_support = async (ctx) => {
 
   if (templateJSONFiles.length === sectionsWithAppBlock.length) {
     console.log(
-      "All desired templates have main sections that support app blocks!"
+      "All desired templates have main sections that support app blocks!",
+      sectionsWithAppBlock
     );
   } else if (sectionsWithAppBlock.length) {
-    console.log("Only some of the desired templates support app blocks.");
+    console.log(
+      "Only some of the desired templates support app blocks.",
+      sectionsWithAppBlock
+    );
   } else {
     console.log("None of the desired templates support app blocks");
   }

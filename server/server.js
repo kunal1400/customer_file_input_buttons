@@ -5,7 +5,8 @@ import shopifyAuth, { verifyRequest } from "@shopify/koa-shopify-auth";
 import Shopify, { ApiVersion } from "@shopify/shopify-api";
 import Koa from "koa";
 import Router from "koa-router";
-import bodyParser from "koa-bodyparser";
+import koaBody from "koa-body";
+
 var url = require("url");
 
 // Custom routes
@@ -37,8 +38,8 @@ const ACTIVE_SHOPIFY_SHOPS = {
 };
 
 const app = new Koa();
-// To handle post requests we need bodyParser
-app.use(bodyParser());
+// To handle post requests & file upload
+app.use(koaBody({ multipart: true }));
 const router = new Router();
 app.keys = [Shopify.Context.API_SECRET_KEY];
 

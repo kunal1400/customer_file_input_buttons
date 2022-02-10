@@ -5,26 +5,36 @@
   {%- if block.settings.description -%}
     <p>{{ block.settings.description }}</p>
   {%- endif -%}
-  <input type="file" class="image_drag_drop_wrapper"/>
+  <p>Your browser must support HTML5 FormData/XHR2</p>
+  <input type="file" multiple id="file-uploader-{{ block.id }}" name="customers_uploaded_files[]" />
 </div>
+
+{% comment %}
+- uploadAsync = false then all images will go in 1 api with customers_uploaded_files as parameter
+{% endcomment %}
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     // Handling canvas background image upload
-    jQuery(".image_drag_drop_wrapper").fileinput({
-      'overwriteInitial': true,
-      'maxFileSize': 15000,
-      'showClose': false,
-      'showCaption': false,
-      'showUpload':false,
-      'previewFileType':'any',
-      'allowedFileTypes': ['image']
+    jQuery("#file-uploader-{{ block.id }}").fileinput({
+      uploadUrl: "/tools/custom_api?action=upload_file",
+      uploadAsync: true,
+      minFileCount: 0,
+      maxFileCount: 75,
+      // Extra data that will be passed as data to the url/AJAX server
+      uploadExtraData: function(previewId, index) {
+        return {
+          timestamp: new Date().toUTCString()
+        }
+      },
+      overwriteInitial: false,
+      initialPreviewAsData: true
     })
     .on('fileloaded', function(event, file, previewId, fileId, index, reader) {
       reader.readAsDataURL(file)
       reader.onload = function() {
         let fileContent = reader.result;
-        console.log(fileContent)
+        // console.log(fileContent)
       }
       reader.onerror = function() {
         console.log(reader.error);
@@ -33,6 +43,18 @@
     .on('fileclear', function(event) {
       console.log("file cleared")
     })
+    .on('filesorted', function(e, params) {
+      console.log('file sorted', e, params);
+    })
+    .on('fileuploaded', function(event, previewId, index, fileId) {
+        console.log('File Uploaded', 'ID: ' + fileId + ', Thumb ID: ' + previewId);
+    })
+    .on('fileuploaderror', function(event, data, msg) {
+        console.log('File Upload Error', 'ID: ' + data.fileId + ', Thumb ID: ' + data.previewId);
+    })
+    .on('filebatchuploadcomplete', function(event, preview, config, tags, extraData) {
+        console.log('File Batch Uploaded', preview, config, tags, extraData);
+    });
   })
 </script>
 
@@ -56,6 +78,34 @@
         "id": "description",
         "label": "Description",
         "default": "A simple app block that shows a grid of images that can be customized by the merchant. Each image can be selected to show a popup with the full-sized image."
+      },
+      {
+        "type": "select",
+        "id": "allowedFileTypes",
+        "label": "Allowed File Types",
+        "options": [
+          {
+            "value": "image",
+            "label": "Image"
+          },
+          {
+            "value": "html",
+            "label": "HTML"
+          },
+          {
+            "value": "text",
+            "label": "text"
+          },
+          {
+            "value": "video",
+            "label": "Video"
+          },
+          {
+            "value": "audio",
+            "label": "Audio"
+          }
+        ],
+        "default": "image"
       }
     ]
   }

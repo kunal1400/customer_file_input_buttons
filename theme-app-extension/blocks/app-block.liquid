@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
 <div data-id="{{ block.id }}">
   {%- if block.settings.heading -%}
     <h2>{{ block.settings.heading }}</h2>
@@ -6,6 +7,7 @@
     <p>{{ block.settings.description }}</p>
   {%- endif -%}
   <p>Your browser must support HTML5 FormData/XHR2</p>
+  <p>I believe that there is still a per-file limit of 20MB.</p>
   <input type="file" multiple id="file-uploader-{{ block.id }}" name="customers_uploaded_files[]" />
 </div>
 
@@ -46,8 +48,8 @@
     .on('filesorted', function(e, params) {
       console.log('file sorted', e, params);
     })
-    .on('fileuploaded', function(event, previewId, index, fileId) {
-        console.log('File Uploaded', 'ID: ' + fileId + ', Thumb ID: ' + previewId);
+    .on('fileuploaded', function(event, data, previewId, index, fileId) {
+        console.log('File Uploaded', event, data, previewId, index, fileId);
     })
     .on('fileuploaderror', function(event, data, msg) {
         console.log('File Upload Error', 'ID: ' + data.fileId + ', Thumb ID: ' + data.previewId);

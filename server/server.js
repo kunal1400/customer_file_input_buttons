@@ -9,7 +9,8 @@ import koaBody from "koa-body";
 
 var url = require("url");
 
-// Custom routes
+// Custom modules
+import {storeCallback, loadCallback, deleteCallback} from "./handlers/token";
 import { handle_proxy_apis } from "./APIs";
 import { handle_post_requests } from "./APIs/handlePostRequests";
 import { check_app_block_support } from "./APIs/checkAppBlockSupport";
@@ -24,18 +25,16 @@ Shopify.Context.initialize({
   HOST_NAME: process.env.HOST.replace(/https:\/\/|\/$/g, ""),
   API_VERSION: ApiVersion.October20,
   IS_EMBEDDED_APP: true,
-  // This should be replaced with your preferred storage strategy
-  SESSION_STORAGE: new Shopify.Session.MemorySessionStorage(),
+  SESSION_STORAGE: new Shopify.Session.CustomSessionStorage(
+    storeCallback,
+    loadCallback,
+    deleteCallback
+  ),
 });
 
 // Storing the currently active shops in memory will force them to re-login when your server restarts. You should
 // persist this object in your app.
-const ACTIVE_SHOPIFY_SHOPS = {
-  "test-print-a-wave.myshopify.com": {
-    offlineToken: "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",
-    scope: "write_products,write_customers,write_draft_orders",
-  },
-};
+const ACTIVE_SHOPIFY_SHOPS = {}
 
 const app = new Koa();
 // To handle post requests & file upload

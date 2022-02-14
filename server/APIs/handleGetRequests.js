@@ -2,22 +2,23 @@ var url = require("url");
 import "isomorphic-fetch";
 import { createClient } from "../handlers/client";
 import { GET_SHOP_INFO } from "./Shop/ShopInfo";
+import { getToken } from "../db/token";
 
-export const handle_proxy_apis = async (ctx) => {
+export const handle_get_requests = async (ctx) => {
   // Setting response headers
   ctx.set("Content-Type", "application/json");
 
   // Parsing the request URL and its parameters
   let queryData = url.parse(ctx.req.url, true).query;
 
-  // GraphQLClient takes in the shop url and the accessToken for that shop.
-  const client = createClient(
-    "test-print-a-wave.myshopify.com",
-    "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"
-  );
-
   try {
+    let tokenInfo = await getToken(ctx.query.shop);
+
+    // GraphQLClient takes in the shop url and the accessToken for that shop.
+    const client = createClient(ctx.query.shop, tokenInfo[0].token);
+
     let responseData = {};
+
     if (queryData.action) {
       // Each case is the action of the query param
       switch (queryData.action) {
@@ -39,7 +40,8 @@ export const handle_proxy_apis = async (ctx) => {
           };
           break;
       }
-    } else {
+    }
+    else {
       responseData = {
         status: false,
         message: "action is required",

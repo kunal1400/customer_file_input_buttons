@@ -11,7 +11,7 @@ var url = require("url");
 
 // Custom modules
 import { handleToken, getToken, hardDeleteToken } from "./db/token";
-import { handle_proxy_apis } from "./APIs";
+import { handle_get_requests } from "./APIs/handleGetRequests";
 import { handle_post_requests } from "./APIs/handlePostRequests";
 
 dotenv.config();
@@ -146,7 +146,7 @@ const check_shopname_and_signature = (ctx, next) => {
 /**
  * Handling GET API requests from stores in which my app is installed
  * */
-router.get("/proxy", check_shopname_and_signature, handle_proxy_apis);
+router.get("/proxy", check_shopname_and_signature, handle_get_requests);
 
 /**
  * Handling POST API requests from stores in which my app is installed

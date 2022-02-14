@@ -2,13 +2,13 @@ import "isomorphic-fetch";
 var url = require("url");
 const FormData = require("form-data");
 const fs = require("fs");
-import {
-  GQL_STAGED_UPLOADS_CREATE,
-  STAGED_UPLOADS_CREATE,
-} from "./Files/uploadFile";
+
+// Custom modules
+import { GQL_STAGED_UPLOADS_CREATE } from "./Files/uploadFile";
 import { createClient } from "../handlers/client";
 import { CREATE_FILE } from "./Files/createFile";
 import { GQL_GET_FILE_BY_NAME } from "./Files/getFile";
+import { getToken } from "../db/token";
 
 export const handle_post_requests = async (ctx) => {
   // Setting response headers
@@ -17,10 +17,12 @@ export const handle_post_requests = async (ctx) => {
   // Parsing the request URL and its parameters
   let queryData = url.parse(ctx.req.url, true).query;
 
-  // console.log(ctx.request.body);
-  // console.log(ctx.request.files['customers_uploaded_files[]'], ctx.request.body);
-
   try {
+    let tokenInfo = await getToken(ctx.query.shop);
+
+    // GraphQLClient takes in the shop url and the accessToken for that shop.
+    const client = createClient(ctx.query.shop, tokenInfo[0].token);
+
     if (queryData.action) {
       // Each case is the action of the query param
       switch (queryData.action) {
@@ -36,12 +38,6 @@ export const handle_post_requests = async (ctx) => {
           try {
             const file = ctx.request.files["customers_uploaded_files[]"];
             const fileSize = file.size.toString();
-
-            const client = createClient(
-              "test-print-a-wave.myshopify.com",
-              "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"
-            );
-
             const tmpFileUploadResponse = await client.mutate({
               mutation: GQL_STAGED_UPLOADS_CREATE,
               variables: {

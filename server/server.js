@@ -84,8 +84,8 @@ router.get("/", async (ctx) => {
     console.log(tokenInfo, "tokenInfo on server file");
 
     if (tokenInfo instanceof Array && tokenInfo.length == 0) {
-      //ctx.redirect(`/auth?shop=${ctx.query.shop}`);
-      ctx.body = "No Token info for this shop";
+      ctx.redirect(`/auth?shop=${ctx.query.shop}`);
+      // ctx.body = "No Token info for this shop";
     } else {
       ctx.body =
         "This is the Index page of the application and here we have to check session first";

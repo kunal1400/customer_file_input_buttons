@@ -43,6 +43,7 @@ app.use(
     accessMode: "offline",
     async afterAuth(ctx) {
       const { shop, accessToken, scope } = ctx.state.shopify;
+      const host = ctx.query.host;
 
       // Saving offline token in db
       let tokenInfo = await handleToken(shop, scope, accessToken);

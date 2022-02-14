@@ -7,6 +7,8 @@ import Koa from "koa";
 import Router from "koa-router";
 var url = require("url");
 
+import { handleToken, getToken, hardDeleteToken } from "./db/token";
+
 dotenv.config();
 const port = parseInt(process.env.PORT, 10) || 8081;
 
@@ -33,8 +35,12 @@ app.keys = [Shopify.Context.API_SECRET_KEY];
 app.use(
   shopifyAuth({
     async afterAuth(ctx) {
-      const { shop, accessToken } = ctx.state.shopify;
-      ACTIVE_SHOPIFY_SHOPS[shop] = true;
+      const { shop, accessToken, scope } = ctx.state.shopify;
+
+      // Saving offline token in db
+      let tokenInfo = await handleToken(shop, scope, accessToken);
+
+      console.log(tokenInfo, "==> Shopify Auth");
 
       // Your app should handle the APP_UNINSTALLED webhook to make sure merchants go through OAuth if they reinstall it
       const response = await Shopify.Webhooks.Registry.register({
@@ -42,8 +48,10 @@ app.use(
         accessToken,
         path: "/webhooks",
         topic: "APP_UNINSTALLED",
-        webhookHandler: async (topic, shop, body) =>
-          delete ACTIVE_SHOPIFY_SHOPS[shop],
+        webhookHandler: async (topic, shop, body) => {
+          //delete ACTIVE_SHOPIFY_SHOPS[shop],
+          await hardDeleteToken(topic, shop, body);
+        },
       });
 
       if (!response.success) {
@@ -58,20 +66,25 @@ app.use(
   })
 );
 
+/**
+ * This is the root path of the app
+ */
 router.get("/", async (ctx) => {
-  console.log(ctx, "index router");
-  // const shop = ctx.query.shop;
+  // If shop is present
+  if (ctx.query.shop) {
+    let tokenInfo = await getToken(ctx.query.shop);
 
-  // // If this shop hasn't been seen yet, go through OAuth to create a session
-  // if (ACTIVE_SHOPIFY_SHOPS[shop] === undefined) {
-  //   ctx.redirect(`/auth?shop=${shop}`);
-  // } else {
-  //   // Load app skeleton. Don't include sensitive information here!
-  //   ctx.body = '🎉';
-  // }
+    console.log(tokenInfo, "tokenInfo on server file");
 
-  ctx.body =
-    "This is the Index page of the application and here we have to check session first";
+    if (tokenInfo instanceof Array && tokenInfo.length == 0) {
+      ctx.redirect(`/auth?shop=${ctx.query.shop}`);
+    } else {
+      ctx.body =
+        "This is the Index page of the application and here we have to check session first";
+    }
+  } else {
+    ctx.body = "Shop paramter is not present";
+  }
 });
 
 router.post("/webhooks", async (ctx) => {

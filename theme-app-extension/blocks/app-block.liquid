@@ -1,60 +1,73 @@
-<image-gallery data-id="{{ block.id }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
+<div data-id="{{ block.id }}">
   {%- if block.settings.heading -%}
     <h2>{{ block.settings.heading }}</h2>
   {%- endif -%}
-
   {%- if block.settings.description -%}
     <p>{{ block.settings.description }}</p>
   {%- endif -%}
+  <p>Your browser must support HTML5 FormData/XHR2</p>
+  <p>I believe that there is still a per-file limit of 20MB.</p>
+  <input type="file" multiple id="file-uploader-{{ block.id }}" name="customers_uploaded_files[]" />
+</div>
 
-  <div class="gallery">
-    <figure class="gallery__item gallery__item--1">
-      {%- if block.settings.image_1 -%}
-        <img src="{{ block.settings.image_1 | image_url: width: 1024 }}" alt="{{ block.settings.image_1.alt }}" loading="lazy" width="{{ block.settings.image_1.width }}" height="{{ block.settings.image_1.height }}">
-      {%- else -%}
-        <img src="{{ 'party-hat-frenchie.jpg' | asset_url }}" loading="lazy" width="925" height="617">
-      {%- endif -%}
-    </figure>
-    <figure class="gallery__item gallery__item--2">
-      {%- if block.settings.image_2 -%}
-        <img src="{{ block.settings.image_2 | image_url: width: 1024 }}" alt="{{ block.settings.image_2.alt }}" loading="lazy" width="{{ block.settings.image_2.width }}" height="{{ block.settings.image_2.height }}">
-      {%- else -%}
-        <img src="{{ 'dog-in-birthday-hat.jpg' | asset_url }}" loading="lazy" width="925" height="617">
-      {%- endif -%}
-    </figure>
-    <figure class="gallery__item gallery__item--3">
-      {%- if block.settings.image_3 -%}
-        <img src="{{ block.settings.image_3 | image_url: width: 1024 }}" alt="{{ block.settings.image_3.alt }}" loading="lazy" width="{{ block.settings.image_3.width }}" height="{{ block.settings.image_3.height }}">
-      {%- else -%}
-        <img src="{{ 'all-dogs-go-to-birthday.jpg' | asset_url }}" loading="lazy" width="925" height="921">
-      {%- endif -%}
-    </figure>
-    <figure class="gallery__item gallery__item--4">
-      {%- if block.settings.image_4 -%}
-        <img src="{{ block.settings.image_4 | image_url: width: 1024 }}" alt="{{ block.settings.image_4.alt }}" loading="lazy" width="{{ block.settings.image_4.width }}" height="{{ block.settings.image_4.height }}">
-      {%- else -%}
-        <img src="{{ 'poochie-party-treats.jpg' | asset_url }}" loading="lazy" width="925" height="617">
-      {%- endif -%}
-    </figure>
-  </div>
+{% comment %}
+- uploadAsync = false then all images will go in 1 api with customers_uploaded_files as parameter
+{% endcomment %}
 
-  <image-popup init>
-    <template image-popup>
-      <button close-button class="close-button">
-        {%- render 'icon-close' -%}
-      </button>
-    </template>
-  </image-popup>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Handling canvas background image upload
+    jQuery("#file-uploader-{{ block.id }}").fileinput({
+      uploadUrl: "/tools/custom_api?action=upload_file",
+      uploadAsync: true,
+      minFileCount: 0,
+      maxFileCount: 75,
+      // Extra data that will be passed as data to the url/AJAX server
+      uploadExtraData: function(previewId, index) {
+        return {
+          timestamp: new Date().toUTCString()
+        }
+      },
+      overwriteInitial: false,
+      initialPreviewAsData: true
+    })
+    .on('fileloaded', function(event, file, previewId, fileId, index, reader) {
+      reader.readAsDataURL(file)
+      reader.onload = function() {
+        let fileContent = reader.result;
+        // console.log(fileContent)
+      }
+      reader.onerror = function() {
+        console.log(reader.error);
+      }
+    })
+    .on('fileclear', function(event) {
+      console.log("file cleared")
+    })
+    .on('filesorted', function(e, params) {
+      console.log('file sorted', e, params);
+    })
+    .on('fileuploaded', function(event, data, previewId, index, fileId) {
+        console.log('File Uploaded', event, data, previewId, index, fileId);
+    })
+    .on('fileuploaderror', function(event, data, msg) {
+        console.log('File Upload Error', 'ID: ' + data.fileId + ', Thumb ID: ' + data.previewId);
+    })
+    .on('filebatchuploadcomplete', function(event, preview, config, tags, extraData) {
+        console.log('File Batch Uploaded', preview, config, tags, extraData);
+    });
+  })
+</script>
 
-</image-gallery>
 
 {% schema %}
   {
-    "name": "Image Gallery",
+    "name": "User File Uploader",
     "target": "section",
-    "stylesheet": "image-gallery.css",
-    "javascript": "image-gallery.js",
-    "templates": ["product", "index"],
+    "stylesheet": "app-block.css",
+    "javascript": "app-block-js-files.js",
+    "class": "user_file_uploader_wrapper",
     "settings": [
       {
         "type": "text",
@@ -69,24 +82,32 @@
         "default": "A simple app block that shows a grid of images that can be customized by the merchant. Each image can be selected to show a popup with the full-sized image."
       },
       {
-        "type": "image_picker",
-        "id": "image_1",
-        "label": "Image 1"
-      },
-      {
-        "type": "image_picker",
-        "id": "image_2",
-        "label": "Image 2"
-      },
-      {
-        "type": "image_picker",
-        "id": "image_3",
-        "label": "Image 3"
-      },
-      {
-        "type": "image_picker",
-        "id": "image_4",
-        "label": "Image 4"
+        "type": "select",
+        "id": "allowedFileTypes",
+        "label": "Allowed File Types",
+        "options": [
+          {
+            "value": "image",
+            "label": "Image"
+          },
+          {
+            "value": "html",
+            "label": "HTML"
+          },
+          {
+            "value": "text",
+            "label": "text"
+          },
+          {
+            "value": "video",
+            "label": "Video"
+          },
+          {
+            "value": "audio",
+            "label": "Audio"
+          }
+        ],
+        "default": "image"
       }
     ]
   }

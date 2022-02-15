@@ -6,9 +6,12 @@
   {%- if block.settings.description -%}
     <p>{{ block.settings.description }}</p>
   {%- endif -%}
-  <p>Your browser must support HTML5 FormData/XHR2</p>
-  <p>I believe that there is still a per-file limit of 20MB.</p>
-  <input type="file" multiple id="file-uploader-{{ block.id }}" name="customers_uploaded_files[]" />
+  {{block.settings.product | json}}
+  {% if block.settings.product != empty %}
+    <p>Your browser must support HTML5 FormData/XHR2</p>
+    <p>I believe that there is still a per-file limit of 20MB.</p>
+    <input type="file" multiple id="file-uploader-{{ block.id }}" name="customers_uploaded_files[]" />
+  {% endif %}
 </div>
 
 {% comment %}
@@ -21,8 +24,10 @@
     jQuery("#file-uploader-{{ block.id }}").fileinput({
       uploadUrl: "/tools/custom_api?action=upload_file",
       uploadAsync: true,
-      minFileCount: 0,
-      maxFileCount: 75,
+      minFileCount: {{block.settings.min_file_count}},
+      maxFileCount: {{block.settings.max_file_count}},
+      minFileSize: {{block.settings.min_file_size}},
+      maxFileSize: {{block.settings.max_file_size}},
       // Extra data that will be passed as data to the url/AJAX server
       uploadExtraData: function(previewId, index) {
         return {
@@ -55,7 +60,7 @@
         console.log('File Upload Error', 'ID: ' + data.fileId + ', Thumb ID: ' + data.previewId);
     })
     .on('filebatchuploadcomplete', function(event, preview, config, tags, extraData) {
-        console.log('File Batch Uploaded', preview, config, tags, extraData);
+        console.log('File Batch Uploaded', event, preview, config, tags, extraData);
     });
   })
 </script>
@@ -73,13 +78,13 @@
         "type": "text",
         "id": "heading",
         "label": "Heading",
-        "default": "Cute Puppy Gallery"
+        "default": "Upload Images To Product"
       },
       {
         "type": "text",
         "id": "description",
         "label": "Description",
-        "default": "A simple app block that shows a grid of images that can be customized by the merchant. Each image can be selected to show a popup with the full-sized image."
+        "default": "Upload your images and hit upload button to add to cart"
       },
       {
         "type": "select",
@@ -108,6 +113,40 @@
           }
         ],
         "default": "image"
+      },
+      {
+        "type": "product",
+        "id": "product",
+        "label": "Product",
+        "info": "File drag & drop UI will only appear after you select a product"
+      },
+      {
+        "type": "number",
+        "id": "min_file_count",
+        "label": "Minimum Number of files Required",
+        "default": 0,
+        "info": "Minimum number of files required for Add to cart> If set to 0, it means number of files are optional"
+      },
+      {
+        "type": "number",
+        "id": "max_file_count",
+        "label": "Maximum Number of files",
+        "default": 72,
+        "info": "maximum number of files allowed for each multiple upload. If set to 0, it means number of files allowed is unlimited."
+      },
+      {
+        "type": "number",
+        "id": "min_file_size",
+        "label": "Minimum file size for upload in KB",
+        "default": 0,
+        "info": "The file size must exceed the value set here, else a validation error is thrown using the msgSizeTooSmall setting. Defaults to 0. If this is set to null, then the validation is skipped and no minimum value check will be performed."
+      },
+      {
+        "type": "number",
+        "id": "max_file_size",
+        "label": "Maximum file size for upload in KB",
+        "default": 2000,
+        "info": "If greater than this, a validation error is thrown using the msgSizeTooLarge setting. If set to 0, it means size allowed is unlimited. Defaults to 0."
       }
     ]
   }

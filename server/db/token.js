@@ -12,12 +12,22 @@ export const handleToken = async (shop, scope, token) => {
   try {
     let tokenInfo = await getToken(shop);
     if (tokenInfo instanceof Array && tokenInfo.length == 0) {
-      let insertResponse = await insertToken(shop, scope, token);
+      let insertTokenResponse = await insertToken(shop, scope, token);
       return await getToken(shop);
-    } else {
-      return tokenInfo;
     }
-  } catch (error) {
+    else {
+      let scopeInDb = JSON.parse( tokenInfo[0].scope );
+      // If scope in DB matched with the required scope then no need to update record
+      if( scopeInDb == scope ) {
+        return await getToken(shop);
+      }
+      else {
+        await updatedToken(shop, scope, token);
+        return await getToken(shop);
+      }
+    }
+  }
+  catch (error) {
     return error;
   }
 };
@@ -39,7 +49,28 @@ export const getToken = (shop) => {
       resolve(data);
     });
   });
-};
+}
+
+/**
+ * Getting shop token from DB
+ * @param {*} shop
+ * @returns Promise of data or error
+ */
+ export const updatedToken = (shop, scope, token) => {
+  let updateQuery = "UPDATE ?? SET updated_at=NOW(), scope=?, token=? WHERE shop=?";
+  let query = mysql.format(updateQuery, ["ufu_users", JSON.stringify(scope), token, shop]);
+
+  console.log("==> update query <==", query)
+
+  return new Promise((resolve, reject) => {
+    pool.query(query, (err, data) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(data);
+    });
+  });
+}
 
 /**
  * This will insert token
@@ -97,11 +128,9 @@ export const softDeleteToken = (topic, shop, body) => {
  * @param {*} token
  * @returns
  */
-export const hardDeleteToken = (topic, shop, body) => {
-  let deleteQuery = "DELETE FROM ?? WHERE ?? = ??";
-  let query = mysql.format(deleteQuery, ["ufu_users", "shop", shop]);
-
-  console.log(query, "app delete query");
+export const hardDeleteToken = ( shop ) => {
+  let deleteQuery = "DELETE FROM ?? WHERE shop=?";
+  let query = mysql.format(deleteQuery, ["ufu_users", shop]);
 
   return new Promise((resolve, reject) => {
     pool.query(query, (err, data) => {

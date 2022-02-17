@@ -23,11 +23,13 @@ export const oldcreateClient = (shop, accessToken) => {
 
   return new ApolloClient({
     link: authLink.concat(httpLink),
-    cache: new InMemoryCache(),
+    cache: new InMemoryCache({
+      addTypename: false,
+    }),
   });
 };
 
-export const createClient = (shop, accessToken) => {
+export const createClient = async (shop, accessToken) => {
   const client = new ApolloClient({
     uri: `https://${shop}/admin/api/2022-01/graphql.json`,
     cache: new InMemoryCache({
@@ -40,16 +42,15 @@ export const createClient = (shop, accessToken) => {
   return client;
 };
 
-export const createClientOld = (shop, accessToken) => {
-  const graphQLClient = new GraphQLClient(
-    `https://${shop}/admin/api/2022-01/graphql.json`,
-    {
-      headers: {
-        "Content-Type": "application/json",
-        "X-Shopify-Access-Token": accessToken,
-      },
-    }
-  );
-
-  return graphQLClient;
-};
+// export const createClientOld = (shop, accessToken) => {
+//   const graphQLClient = new GraphQLClient(
+//     `https://${shop}/admin/api/2022-01/graphql.json`,
+//     {
+//       headers: {
+//         "Content-Type": "application/json",
+//         "X-Shopify-Access-Token": accessToken,
+//       },
+//     }
+//   );
+//   return graphQLClient;
+// };

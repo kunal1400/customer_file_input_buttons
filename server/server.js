@@ -20,6 +20,7 @@ const port = parseInt(process.env.PORT, 10) || 8081;
 Shopify.Context.initialize({
   API_KEY: process.env.SHOPIFY_API_KEY,
   API_SECRET_KEY: process.env.SHOPIFY_API_SECRET,
+  // One issue in env `read_files` is not coming in scope
   SCOPES: process.env.SCOPES.split(","),
   HOST_NAME: process.env.HOST.replace(/https:\/\/|\/$/g, ""),
   API_VERSION: ApiVersion.October20,
@@ -43,12 +44,10 @@ app.use(
     accessMode: "offline",
     async afterAuth(ctx) {
       const { shop, accessToken, scope } = ctx.state.shopify;
+
+      console.log(shop, accessToken, scope, "shop, accessToken, scope")
+
       const host = ctx.query.host;
-
-      // Saving offline token in db
-      let tokenInfo = await handleToken(shop, scope, accessToken);
-
-      console.log(tokenInfo, "==> Shopify auth and token info");
 
       // Your app should handle the APP_UNINSTALLED webhook to make sure merchants go through OAuth if they reinstall it
       const response = await Shopify.Webhooks.Registry.register({
@@ -58,7 +57,8 @@ app.use(
         topic: "APP_UNINSTALLED",
         webhookHandler: async (topic, shop, body) => {
           //delete ACTIVE_SHOPIFY_SHOPS[shop],
-          await hardDeleteToken( shop );
+          // await hardDeleteToken( shop );
+          console.log(topic, shop, body, "topic, shop, body")
         },
       });
 
@@ -67,6 +67,11 @@ app.use(
           `Failed to register APP_UNINSTALLED webhook: ${response.result}`
         );
       }
+
+      // Saving offline token in db
+      let tokenInfo = await handleToken(shop, scope, accessToken);
+
+      console.log(tokenInfo, "==> Shopify auth and token info");
 
       // Redirect to app with shop parameter upon auth
       ctx.redirect(`/?shop=${shop}&host=${host}`);
@@ -87,19 +92,20 @@ router.get("/", async (ctx) => {
       // ctx.body = "No Token info for this shop";
     }
     else {
-      let scopeInDb = JSON.parse( tokenInfo[0].scope );
-      let requiredScope = process.env.SCOPES;
+      ctx.body = "This is the Index page of the application and here we have to check session first";
+      // let scopeInDb = JSON.parse( tokenInfo[0].scope );
+      // let requiredScope = process.env.SCOPES;
 
-      if( scopeInDb == requiredScope ) {
-        ctx.body = "This is the Index page of the application and here we have to check session first";
-      }
-      else {
-        console.log(scopeInDb, requiredScope, "Scope has been updated so redirecting merchant to oath screen");
+      // if( scopeInDb == requiredScope ) {
+      //   ctx.body = "This is the Index page of the application and here we have to check session first";
+      // }
+      // else {
+      //   console.log(scopeInDb, requiredScope, "Scope has been updated so redirecting merchant to oath screen");
 
-        // Scopes not matched redirect to auth screen and from there scope will update both on Shopify & DB
-        ctx.redirect(`/auth?shop=${ctx.query.shop}`);
-        // ctx.body = "scope not matched";
-      }
+      //   // Scopes not matched redirect to auth screen and from there scope will update both on Shopify & DB
+      //   ctx.redirect(`/auth?shop=${ctx.query.shop}`);
+      //   // ctx.body = "scope not matched";
+      // }
     }
   } else {
     ctx.body = "Shop paramter is not present";
@@ -161,7 +167,7 @@ router.get("/proxy", check_shopname_and_signature, handle_get_requests);
 /**
  * Handling POST API requests from stores in which my app is installed
  * */
-router.post("/proxy", check_shopname_and_signature, handle_post_requests);
+router.post("/proxy", handle_post_requests);
 
 app.use(router.allowedMethods());
 app.use(router.routes());

@@ -1,7 +1,7 @@
 var url = require("url");
 import "isomorphic-fetch";
 import { createClient } from "../handlers/client";
-import { GET_SHOP_INFO } from "./Shop/ShopInfo";
+import { GET_SHOP_INFO } from "./Shopify/ShopInfo";
 import { getToken } from "../db/token";
 
 export const handle_get_requests = async (ctx) => {
@@ -50,7 +50,8 @@ export const handle_get_requests = async (ctx) => {
 
     // Sending final response after all execution
     ctx.body = responseData;
-  } catch (error) {
+  }
+  catch (error) {
     ctx.throw(401, {
       data: {
         error,

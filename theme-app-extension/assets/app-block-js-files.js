@@ -11835,3 +11835,21 @@
       t.length && t.fileinput();
     });
 });
+
+/************* CUSTOM JS FUNCTIONS *************/
+/**
+ * This function is adding item to cart
+ * @param {*} formData
+ */
+function cfu_add_to_cart(formData) {
+  return fetch('/cart/add.js', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(formData)
+  })
+  .then(response => {
+    return response.json();
+  });
+}

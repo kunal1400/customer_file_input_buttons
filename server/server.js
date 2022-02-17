@@ -10,7 +10,7 @@ import koaBody from "koa-body";
 var url = require("url");
 
 // Custom modules
-import { handleToken, getToken, hardDeleteToken } from "./db/token";
+import { handleToken, getToken } from "./db/token";
 import { handle_get_requests } from "./APIs/handleGetRequests";
 import { handle_post_requests } from "./APIs/handlePostRequests";
 
@@ -34,7 +34,16 @@ const ACTIVE_SHOPIFY_SHOPS = {}
 
 const app = new Koa();
 // To handle post requests & file upload
-app.use(koaBody({ multipart: true }));
+app.use(
+  koaBody({
+    multipart: true,
+    formLimit: "10000mb",
+    textLimit: "10000mb",
+    formidable: {
+      maxFileSize: "10000mb"
+    }
+  })
+);
 const router = new Router();
 app.keys = [Shopify.Context.API_SECRET_KEY];
 
@@ -167,7 +176,7 @@ router.get("/proxy", check_shopname_and_signature, handle_get_requests);
 /**
  * Handling POST API requests from stores in which my app is installed
  * */
-router.post("/proxy", handle_post_requests);
+router.post("/proxy/:action", handle_post_requests);
 
 app.use(router.allowedMethods());
 app.use(router.routes());

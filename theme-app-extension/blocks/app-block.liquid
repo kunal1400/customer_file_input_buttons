@@ -6,62 +6,117 @@
   {%- if block.settings.description -%}
     <p>{{ block.settings.description }}</p>
   {%- endif -%}
-  {{block.settings.product | json}}
-  {% if block.settings.product != empty %}
-    <p>Your browser must support HTML5 FormData/XHR2</p>
-    <p>I believe that there is still a per-file limit of 20MB.</p>
+
+  {% comment %}
+  - Your browser must support HTML5 FormData/XHR2
+  - I believe that there is still a per-file limit of 20MB.
+  {% endcomment %}
+  {% assign choosenProduct = null %}
+  {% if block.settings.ref_product != null and block.settings.ref_product != "" %}
+    {% assign choosenProduct = all_products[block.settings.ref_product] %}
+    {{choosenProduct | json}}
+    <div id="{{ block.id }}-error" class="alert alert-error"></div>
+    <div id="{{ block.id }}-success" class="alert alert-success"></div>
     <input type="file" multiple id="file-uploader-{{ block.id }}" name="customers_uploaded_files[]" />
   {% endif %}
+
 </div>
 
 {% comment %}
 - uploadAsync = false then all images will go in 1 api with customers_uploaded_files as parameter
 {% endcomment %}
-
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Handling canvas background image upload
+    var s3ServerUrls = [];
+    // Configuring the file uploader
     jQuery("#file-uploader-{{ block.id }}").fileinput({
-      uploadUrl: "/tools/custom_api?action=upload_file",
+      uploadUrl: "/tools/custom_api/upload_file",
       uploadAsync: true,
       minFileCount: {{block.settings.min_file_count}},
       maxFileCount: {{block.settings.max_file_count}},
       minFileSize: {{block.settings.min_file_size}},
       maxFileSize: {{block.settings.max_file_size}},
+      overwriteInitial: false,
+      initialPreviewAsData: true,
+      browseLabel: "{{block.settings.browseLabel}}",
+      removeLabel: "{{block.settings.removeLabel}}",
+      cancelLabel: "{{block.settings.cancelLabel}}",
+      pauseLabel: "{{block.settings.pauseLabel}}",
+      uploadLabel: "{{block.settings.uploadLabel}}",
+      msgUploadEnd: "Added to cart"
+      // Showing all errors inside this div
+      elErrorContainer: "{{ block.id }}-error",
       // Extra data that will be passed as data to the url/AJAX server
       uploadExtraData: function(previewId, index) {
         return {
-          timestamp: new Date().toUTCString()
+          _uploading_started_at: new Date().toUTCString()
         }
-      },
-      overwriteInitial: false,
-      initialPreviewAsData: true
+      }
     })
     .on('fileloaded', function(event, file, previewId, fileId, index, reader) {
-      reader.readAsDataURL(file)
+      jQuery("#{{ block.id }}-success").text("");
+      /*reader.readAsDataURL(file)
       reader.onload = function() {
         let fileContent = reader.result;
         // console.log(fileContent)
       }
       reader.onerror = function() {
         console.log(reader.error);
-      }
+      }*/
     })
     .on('fileclear', function(event) {
+      jQuery("#{{ block.id }}-success").text("");
       console.log("file cleared")
     })
     .on('filesorted', function(e, params) {
+      jQuery("#{{ block.id }}-success").text("");
       console.log('file sorted', e, params);
     })
     .on('fileuploaded', function(event, data, previewId, index, fileId) {
-        console.log('File Uploaded', event, data, previewId, index, fileId);
+      jQuery("#{{ block.id }}-success").text("");
+      console.log('File Uploaded', data, previewId, index, fileId);
+      let {response} = data;
+      if( response.status == true ) {
+        console.log(response.data.Location, "Save this url")
+        s3ServerUrls.push( response.data.Location )
+      }
+      else {
+        alert("Response is not true")
+      }
     })
     .on('fileuploaderror', function(event, data, msg) {
-        console.log('File Upload Error', 'ID: ' + data.fileId + ', Thumb ID: ' + data.previewId);
+      jQuery("#{{ block.id }}-success").text("");
+      console.log('File Upload Error', 'ID: ' + data.fileId + ', Thumb ID: ' + data.previewId);
     })
     .on('filebatchuploadcomplete', function(event, preview, config, tags, extraData) {
-        console.log('File Batch Uploaded', event, preview, config, tags, extraData);
-    });
+      console.log('File Batch Uploaded', event, preview, config, tags, extraData);
+      jQuery("#{{ block.id }}-success").text("");
+      if( s3ServerUrls.length > 0 ) {
+        // Generating the form data
+        cfu_add_to_cart({
+          items: [{
+            quantity: 1,
+            id: {{ choosenProduct.variants[0].id }},
+            properties: {
+              user_uploaded_files: s3ServerUrls.join(",")
+            }
+          }]
+        })
+        .then(response => {
+          console.log("added to cart", response);
+          jQuery("#{{ block.id }}-success").text("Added to cart");
+        })
+        .catch((error) => {
+          console.error('Error:', error);
+        })
+      }
+      else {
+        alert("No url to add to cart")
+      }
+    })
+    .on('filebatchuploadsuccess', function(event, data) {
+      console.log('File Batch Upload Success', event, data);
+    })
   })
 </script>
 
@@ -74,6 +129,12 @@
     "javascript": "app-block-js-files.js",
     "class": "user_file_uploader_wrapper",
     "settings": [
+      {
+        "type": "product",
+        "id": "ref_product",
+        "label": "Product",
+        "info": "File drag & drop UI will only appear after you select a product"
+      },
       {
         "type": "text",
         "id": "heading",
@@ -115,12 +176,6 @@
         "default": "image"
       },
       {
-        "type": "product",
-        "id": "product",
-        "label": "Product",
-        "info": "File drag & drop UI will only appear after you select a product"
-      },
-      {
         "type": "number",
         "id": "min_file_count",
         "label": "Minimum Number of files Required",
@@ -147,6 +202,40 @@
         "label": "Maximum file size for upload in KB",
         "default": 2000,
         "info": "If greater than this, a validation error is thrown using the msgSizeTooLarge setting. If set to 0, it means size allowed is unlimited. Defaults to 0."
+      },
+      {
+        "type": "header",
+        "content": "Buttons Label Settings"
+      },
+      {
+        "type": "text",
+        "id": "browseLabel",
+        "label": "Browse Label",
+        "default": "Browse"
+      },
+      {
+        "type": "text",
+        "id": "removeLabel",
+        "label": "Remove Label",
+        "default": "Remove"
+      },
+      {
+        "type": "text",
+        "id": "cancelLabel",
+        "label": "Cancel Label",
+        "default": "Cancel"
+      },
+      {
+        "type": "text",
+        "id": "pauseLabel",
+        "label": "Pause Label",
+        "default": "Pause"
+      },
+      {
+        "type": "text",
+        "id": "uploadLabel",
+        "label": "Upload Label",
+        "default": "Add To Cart"
       }
     ]
   }

@@ -1,5 +1,4 @@
 import "isomorphic-fetch";
-var url = require("url");
 
 // Custom modules
 import { createClient } from "../handlers/client";
@@ -7,13 +6,13 @@ import { getToken } from "../db/token";
 import { uploadFile } from "./s3";
 
 export const handle_post_requests = async (ctx) => {
+  let {action} = ctx.params
   ctx.request.socket.setTimeout(10 * 60 * 1000);
 
   // Setting response headers
   ctx.set("Content-Type", "application/json");
 
-  // Parsing the request URL and its parameters
-  let queryData = url.parse(ctx.req.url, true).query;
+  console.log(action, "action")
 
   try {
     let tokenInfo = await getToken(ctx.query.shop);
@@ -21,9 +20,9 @@ export const handle_post_requests = async (ctx) => {
     // GraphQLClient takes in the shop url and the accessToken for that shop.
     const client = await createClient(ctx.query.shop, tokenInfo[0].token);
 
-    if (queryData.action) {
+    if (action) {
       // Each case is the action of the query param
-      switch (queryData.action) {
+      switch (action) {
         case "add_product":
           // creating response with data
           ctx.body = {
@@ -40,6 +39,7 @@ export const handle_post_requests = async (ctx) => {
               status: true,
               initialPreview: [s3response.Location],
               initialPreviewConfig: [],
+              append: true,
               data: s3response
             }
           }
@@ -47,7 +47,10 @@ export const handle_post_requests = async (ctx) => {
             console.log(error, "==> Error while uploading in s3")
             ctx.body = {
               status: false,
-              error
+              error: 'An error occured while uploading',
+              initialPreview: [],
+              initialPreviewConfig: [],
+              append: true
             }
           }
         break;

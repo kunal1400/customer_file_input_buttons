@@ -1,7 +1,8 @@
 import Shopify from '@shopify/shopify-api';
 
 /**
- * This will return the scopes associated with the token
+ * This will return the scopes associated with the passed token
+ *
  * @param {*} shop URL not graphql/Rest API end point
  * @param {*} accessToken
  */

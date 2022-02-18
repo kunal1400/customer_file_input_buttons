@@ -12,8 +12,6 @@ export const handle_post_requests = async (ctx) => {
   // Setting response headers
   ctx.set("Content-Type", "application/json");
 
-  console.log(action, "action")
-
   try {
     let tokenInfo = await getToken(ctx.query.shop);
 
@@ -33,8 +31,13 @@ export const handle_post_requests = async (ctx) => {
 
         case 'upload_file':
           const uploadedFile = ctx.request.files["customers_uploaded_files[]"];
+          let {_uploading_started_at} = ctx.request.body;
+          if(!_uploading_started_at) {
+            _uploading_started_at = "default"
+          }
+          console.log("upload_file in this folder", _uploading_started_at)
           try {
-            let s3response = await uploadFile( uploadedFile );
+            let s3response = await uploadFile( uploadedFile, _uploading_started_at );
             ctx.body = {
               status: true,
               initialPreview: [s3response.Location],

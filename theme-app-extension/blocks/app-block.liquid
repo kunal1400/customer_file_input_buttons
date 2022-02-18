@@ -43,13 +43,13 @@
       cancelLabel: "{{block.settings.cancelLabel}}",
       pauseLabel: "{{block.settings.pauseLabel}}",
       uploadLabel: "{{block.settings.uploadLabel}}",
-      msgUploadEnd: "Added to cart"
+      msgUploadEnd: "Added to cart",
       // Showing all errors inside this div
       elErrorContainer: "{{ block.id }}-error",
       // Extra data that will be passed as data to the url/AJAX server
       uploadExtraData: function(previewId, index) {
         return {
-          _uploading_started_at: new Date().toUTCString()
+          _uploading_started_at: new Date().toUTCString().replace(/,/g, '').replace(/ /g,"_")
         }
       }
     })

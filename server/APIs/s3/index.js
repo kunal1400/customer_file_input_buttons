@@ -64,7 +64,7 @@ const listKeys = (keyPrefix) => {
  * @param { string } file
  * @param {string } folderName
  */
-const uploadFile = ( file, folderName="test" ) => {
+const uploadFile = ( file, folderName="default" ) => {
   var fileName = file.name;
   var albumPhotosKey = encodeURIComponent(folderName) + "/";
   var photoKey = albumPhotosKey + fileName;

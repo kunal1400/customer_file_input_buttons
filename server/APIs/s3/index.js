@@ -66,8 +66,13 @@ const listKeys = (keyPrefix) => {
  */
 const uploadFile = ( file, folderName="default" ) => {
   var fileName = file.name;
-  var albumPhotosKey = encodeURIComponent(folderName) + "/";
-  var photoKey = albumPhotosKey + fileName;
+  // Generating date wise folder structure for better management
+  var dateObj = new Date();
+  var month = dateObj.getUTCMonth() + 1; //months from 1-12
+  var day = dateObj.getUTCDate();
+  var year = dateObj.getUTCFullYear();
+
+  var photoKey = year + "/" + month + "/" + day + "/" + folderName + "/" + fileName;
 
   // Use S3 ManagedUpload class as it supports multipart uploads
   var upload = new AWS.S3.ManagedUpload({
@@ -80,15 +85,6 @@ const uploadFile = ( file, folderName="default" ) => {
   });
 
   return upload.promise();
-
-  promise.then(
-    function(data) {
-      console.log("Successfully uploaded photo.", data);
-    },
-    function(err) {
-      console.log("There was an error uploading your photo: ", err.message);
-    }
-  );
 }
 
 module.exports = {

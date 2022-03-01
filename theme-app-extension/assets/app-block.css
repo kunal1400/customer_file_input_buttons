@@ -7484,13 +7484,15 @@ input[type="file"].file-loading {
 }
 
 .kv-upload-progress .progress {
-  height: 20px;
+  height: 32px;
   margin: 10px 0;
   overflow: hidden;
 }
 
 .kv-upload-progress .progress-bar {
-  height: 20px;
+  height: 100%;
+  line-height: unset;
+  font-size: large;
   font-family: Verdana, Helvetica, sans-serif;
 }
 

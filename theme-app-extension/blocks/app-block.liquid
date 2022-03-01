@@ -14,7 +14,6 @@
   {% assign choosenProduct = null %}
   {% if block.settings.ref_product != null and block.settings.ref_product != "" %}
     {% assign choosenProduct = all_products[block.settings.ref_product] %}
-    {{choosenProduct | json}}
     <div id="{{ block.id }}-error" class="alert alert-error"></div>
     <div id="{{ block.id }}-success" class="alert alert-success"></div>
     <input type="file" multiple id="file-uploader-{{ block.id }}" name="customers_uploaded_files[]" />
